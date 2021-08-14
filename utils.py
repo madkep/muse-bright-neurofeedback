@@ -94,11 +94,27 @@ def compute_band_powers(eegdata, fs):
     ind_theta, = np.where((f >= 4) & (f <= 8))
     meanTheta = np.mean(PSD[ind_theta, :], axis=0)
     # Alpha 8-12
-    ind_alpha, = np.where((f >= 8) & (f <= 12))
+    ind_alpha, = np.where((f >= 12.5) & (f <= 15.5))
     meanAlpha = np.mean(PSD[ind_alpha, :], axis=0)
     # Beta 12-30
-    ind_beta, = np.where((f >= 12) & (f < 30))
-    meanBeta = np.mean(PSD[ind_beta, :], axis=0) 
+    ind_beta, = np.where((f >= 20) & (f < 30))
+    meanBeta = np.mean(PSD[ind_beta, :], axis=0)
+
+    #new values
+    #Delta wave 0.1-3 hz
+    #Theta wave 4-7 hz
+    #Alpha wave 8-15 hz
+    #Mu wave 7.5-12.5 hz
+    #SMR wave 12.5-15.5 hz
+    #Beta wave 16-31 hz
+    #Gama wave 32-100 hz
+
+    #Extra for neurofeedback
+    #HighBeta 20-30 hz
+    #Theta 4-8 hz
+    #SMR 12.5-15.5
+    #for now I am going to change only the frequencies of the above variables until 
+    #I figure out how to add others and change their names
 
     feature_vector = np.concatenate((meanDelta, meanTheta, meanAlpha,
                                      meanBeta), axis=0)

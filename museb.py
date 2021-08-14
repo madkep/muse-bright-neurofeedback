@@ -128,16 +128,17 @@ if __name__ == "__main__":
 
             # Alpha Protocol:
             # Simple redout of alpha power, divided by delta waves in order to rule out noise
-            alpha_metric = smooth_band_powers[Band.Alpha] / \
-                smooth_band_powers[Band.Delta]
-            print('Alpha Relaxation: ', alpha_metric)
+            #alpha_metric = smooth_band_powers[Band.Alpha] / \
+            #    smooth_band_powers[Band.Delta]
+            #print('Alpha Relaxation: ', alpha_metric)
 
             # Beta Protocol:
             # Beta waves have been used as a measure of mental activity and concentration
             # This beta over theta ratio is commonly used as neurofeedback for ADHD
-            # beta_metric = smooth_band_powers[Band.Beta] / \
-            #     smooth_band_powers[Band.Theta]
-            # print('Beta Concentration: ', beta_metric)
+            #beta_percentage = ((band_powers[Band.Beta] + 2)*25)
+            #beta_metric = smooth_band_powers[Band.Beta] / \
+            #    smooth_band_powers[Band.Theta]
+            #print('Relax: %s Concen: %s Beta: %s %s'% (alpha_metric ,beta_metric, beta_percentage, band_powers[Band.Beta]  ))
 
             # Alpha/Theta Protocol:
             # This is another popular neurofeedback metric for stress reduction
@@ -145,6 +146,12 @@ if __name__ == "__main__":
             # theta_metric = smooth_band_powers[Band.Theta] / \
             #     smooth_band_powers[Band.Alpha]
             # print('Theta Relaxation: ', theta_metric)
+
+            theta_percentage = ((smooth_band_powers[Band.Theta] + 2)*25) #theta represent theta
+            alpha_percentage = ((smooth_band_powers[Band.Alpha] + 2)*25) #alpha represent SMR wave
+            beta_percentage = ((smooth_band_powers[Band.Beta] + 2)*25)  #beta represent high beta
+
+            print("theta %s   SMR %s  beta %s" % (theta_percentage, alpha_percentage, beta_percentage) )
 
     except KeyboardInterrupt:
         print('Closing!')
