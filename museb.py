@@ -14,8 +14,22 @@ import numpy as np  # Module that simplifies computations on matrices
 import matplotlib.pyplot as plt  # Module used for plotting
 from pylsl import StreamInlet, resolve_byprop  # Module to receive EEG data
 import utils  # Our own utility functions
+from os import system
 
 # Handy little enum to make code more readable
+
+#my dificult
+#level 1
+#theta < 60
+#smr(alpha) > 60
+#betha < 50
+theta_threshold = 55
+alpha_threshold = 55
+beta_threshold = 50
+
+point = 0
+point_2 = 0
+fail = 0
 
 
 class Band:
@@ -23,6 +37,16 @@ class Band:
     Theta = 1
     Alpha = 2
     Beta = 3
+
+
+def put_10():
+    system("brightness 0.01")
+
+def put_50():
+    system("brightness 0.25")
+
+def put_100():
+    system("brightness 1")
 
 
 """ EXPERIMENTAL PARAMETERS """
@@ -126,30 +150,22 @@ if __name__ == "__main__":
             """ 3.3 COMPUTE NEUROFEEDBACK METRICS """
             # These metrics could also be used to drive brain-computer interfaces
 
-            # Alpha Protocol:
-            # Simple redout of alpha power, divided by delta waves in order to rule out noise
-            #alpha_metric = smooth_band_powers[Band.Alpha] / \
-            #    smooth_band_powers[Band.Delta]
-            #print('Alpha Relaxation: ', alpha_metric)
 
             # Beta Protocol:
             # Beta waves have been used as a measure of mental activity and concentration
             # This beta over theta ratio is commonly used as neurofeedback for ADHD
-            #beta_percentage = ((band_powers[Band.Beta] + 2)*25)
-            #beta_metric = smooth_band_powers[Band.Beta] / \
-            #    smooth_band_powers[Band.Theta]
-            #print('Relax: %s Concen: %s Beta: %s %s'% (alpha_metric ,beta_metric, beta_percentage, band_powers[Band.Beta]  ))
-
-            # Alpha/Theta Protocol:
-            # This is another popular neurofeedback metric for stress reduction
-            # Higher theta over alpha is supposedly associated with reduced anxiety
-            # theta_metric = smooth_band_powers[Band.Theta] / \
-            #     smooth_band_powers[Band.Alpha]
-            # print('Theta Relaxation: ', theta_metric)
-
+            
             theta_percentage = ((smooth_band_powers[Band.Theta] + 2)*25) #theta represent theta
             alpha_percentage = ((smooth_band_powers[Band.Alpha] + 2)*25) #alpha represent SMR wave
             beta_percentage = ((smooth_band_powers[Band.Beta] + 2)*25)  #beta represent high beta
+
+            if( alpha_percentage > alpha_threshold and theta_percentage < theta_threshold and beta_percentage < beta_threshold):
+                put_100()
+
+            elif( alpha_percentage > alpha_threshold or theta_percentage < theta_threshold):
+                put_50()
+            else:
+                put_10()
 
             print("theta %s   SMR %s  beta %s" % (theta_percentage, alpha_percentage, beta_percentage) )
 
