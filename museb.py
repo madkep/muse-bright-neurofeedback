@@ -23,14 +23,14 @@ from os import system
 #theta < 60
 #smr(alpha) > 60
 #betha < 50
-theta_threshold = 55
-alpha_threshold = 55
-beta_threshold = 50
 
-point = 0
-point_2 = 0
-fail = 0
+theta_threshold = 64.8
+alpha_threshold = 48.2 #SMR 
+beta_threshold = 64.8
 
+sec_high = 0
+sec_med = 0
+sec_low = 0
 
 class Band:
     Delta = 0
@@ -38,12 +38,14 @@ class Band:
     Alpha = 2
     Beta = 3
 
+def seconds(sec):
+    return (sec*0.2)
 
 def put_10():
     system("brightness 0.01")
 
 def put_50():
-    system("brightness 0.25")
+    system("brightness 0.35")
 
 def put_100():
     system("brightness 1")
@@ -161,13 +163,38 @@ if __name__ == "__main__":
 
             if( alpha_percentage > alpha_threshold and theta_percentage < theta_threshold and beta_percentage < beta_threshold):
                 put_100()
-
+                sec_high += 1
+                if(seconds(sec_high) > 30):
+                    alpha_threshold += 0.2
+                    theta_threshold -= 0.2
+                    beta_threshold -= 0.2
+                    sec_high = 0
+                sec_med = 0
+                sec_low = 0
+                    
             elif( alpha_percentage > alpha_threshold or theta_percentage < theta_threshold):
                 put_50()
+                sec_med +=1
+                if(seconds(sec_med) > 15):
+                    if(theta_percentage < theta_threshold):
+                        theta_threshold -= 1
+                    else:
+                        alpha_threshold +=1 
+                    sec_med = 0
+                sec_high = 0
+                sec_low = 0
             else:
                 put_10()
-
-            print("theta %s   SMR %s  beta %s" % (theta_percentage, alpha_percentage, beta_percentage) )
+                sec_low += 1
+                if(seconds(sec_low) > 60):
+                    alpha_threshold -= 0.2
+                    theta_threshold += 0.2
+                    beta_threshold += 0.2
+                    sec_low = 0
+                sec_high = 0
+                sec_med = 0
+            
+            print("theta %s   SMR %s  beta %s  sec_high %s  sec_med %s" % (theta_threshold, alpha_threshold, beta_threshold, seconds(sec_high), seconds(sec_med)) )
 
     except KeyboardInterrupt:
         print('Closing!')
