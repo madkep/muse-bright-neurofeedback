@@ -24,8 +24,8 @@ from os import system
 #smr(alpha) > 60
 #betha < 50
 
-theta_threshold = 64.8
-alpha_threshold = 48.2 #SMR 
+theta_threshold = 63.7
+alpha_threshold = 48.8 #SMR 
 beta_threshold = 64.8
 
 sec_high = 0
@@ -38,6 +38,17 @@ class Band:
     Alpha = 2
     Beta = 3
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 def seconds(sec):
     return (sec*0.2)
 
@@ -48,7 +59,7 @@ def put_50():
     system("brightness 0.35")
 
 def put_100():
-    system("brightness 1")
+    system("brightness 0.9")
 
 
 """ EXPERIMENTAL PARAMETERS """
@@ -172,14 +183,16 @@ if __name__ == "__main__":
                 sec_med = 0
                 sec_low = 0
                     
-            elif( alpha_percentage > alpha_threshold or theta_percentage < theta_threshold):
+            elif( alpha_percentage > alpha_threshold or theta_percentage < theta_threshold or beta_percentage < beta_threshold):
                 put_50()
                 sec_med +=1
                 if(seconds(sec_med) > 15):
                     if(theta_percentage < theta_threshold):
-                        theta_threshold -= 1
+                        theta_threshold -= 0.1
+                    elif(alpha_percentage > alpha_threshold):
+                        alpha_threshold += 0.1
                     else:
-                        alpha_threshold +=1 
+                        beta_threshold -= 0.1
                     sec_med = 0
                 sec_high = 0
                 sec_low = 0
@@ -193,8 +206,24 @@ if __name__ == "__main__":
                     sec_low = 0
                 sec_high = 0
                 sec_med = 0
-            
-            print("theta %s   SMR %s  beta %s  sec_high %s  sec_med %s" % (theta_threshold, alpha_threshold, beta_threshold, seconds(sec_high), seconds(sec_med)) )
+
+            if(theta_percentage < theta_threshold):
+                print( bcolors.OKGREEN +"theta: " + str(theta_threshold) + bcolors.OKGREEN, end=' ')
+            else:
+                print( bcolors.FAIL +"theta: " + str(theta_threshold) + bcolors.FAIL, end=' ')
+
+            if(alpha_percentage > alpha_threshold):
+                print(bcolors.OKGREEN + "SMR" + str(alpha_threshold) + bcolors.OKGREEN, end=' ')
+            else:
+                print(bcolors.FAIL + "SMR" + str(alpha_threshold) + bcolors.FAIL, end=' ')
+
+            if(beta_percentage < beta_threshold):
+                print(bcolors.OKGREEN + "beta" + str(beta_threshold) + bcolors.OKGREEN, end=' ')
+            else:
+                print(bcolors.FAIL + "beta" + str(beta_threshold) + bcolors.FAIL, end=' ')
+
+            print(bcolors.OKCYAN + "sec_high: " + str(seconds(sec_high)) + "sec_med: " + str(seconds(sec_med)) +  "sec_low: " + str(seconds(sec_low)) + bcolors.OKCYAN)
+
 
     except KeyboardInterrupt:
         print('Closing!')
