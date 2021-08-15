@@ -24,9 +24,9 @@ from os import system
 #smr(alpha) > 60
 #betha < 50
 
-theta_threshold = 63.7
-alpha_threshold = 48.8 #SMR 
-beta_threshold = 64.8
+theta_threshold = 56.0
+alpha_threshold = 52.5 #SMR 
+beta_threshold = 48.7
 
 sec_high = 0
 sec_med = 0
@@ -223,7 +223,7 @@ if __name__ == "__main__":
                 print(bcolors.FAIL + "beta" + str(beta_threshold) + bcolors.FAIL, end=' ')
 
             print(bcolors.OKCYAN + "sec_high: " + str(seconds(sec_high)) + "sec_med: " + str(seconds(sec_med)) +  "sec_low: " + str(seconds(sec_low)) + bcolors.OKCYAN)
-
+            
 
     except KeyboardInterrupt:
         print('Closing!')
