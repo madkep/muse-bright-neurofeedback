@@ -10,6 +10,7 @@ The neurofeedback protocols described here are inspired by
 Adapted from https://github.com/NeuroTechX/bci-workshop
 """
 
+from typing import Text
 import numpy as np  # Module that simplifies computations on matrices
 import matplotlib.pyplot as plt  # Module used for plotting
 from pylsl import StreamInlet, resolve_byprop  # Module to receive EEG data
@@ -39,16 +40,13 @@ theta_average = 0
 alpha_average = 0
 beta_average = 0
 
-calibration_time = 30
-error_percentage = 2
+calibration_time = 60
+error_percentage = 3
 
 f.close()
 
-
-sec_high = 0
-sec_med = 0
-sec_low = 0
 sec_cal = 0
+sec_op = 0
 
 cal = False
 
@@ -80,7 +78,8 @@ def put_50():
     system("brightness 0.35")
 
 def put_100():
-    system("brightness 0.9")
+    system("brightness 0.85")
+
 
 
 """ EXPERIMENTAL PARAMETERS """
@@ -101,11 +100,12 @@ SHIFT_LENGTH = EPOCH_LENGTH - OVERLAP_LENGTH
 
 # Index of the channel(s) (electrodes) to be used
 # 0 = left ear, 1 = left forehead, 2 = right forehead, 3 = right ear
-INDEX_CHANNEL = [0]
+INDEX_CHANNEL = [1]
 
 if __name__ == "__main__":
 
     """ 1. CONNECT TO EEG STREAM """
+    put_100()
 
     # Search for active LSL streams
     print('Looking for an EEG stream...')
@@ -154,11 +154,18 @@ if __name__ == "__main__":
 
             """ 3.1 ACQUIRE DATA """
             # Obtain EEG data from the LSL stream
-            eeg_data, timestamp = inlet.pull_chunk(
-                timeout=1, max_samples=int(SHIFT_LENGTH * fs))
+            try:
+                eeg_data, timestamp = inlet.pull_chunk(
+                    timeout=1, max_samples=int(SHIFT_LENGTH * fs))
 
-            # Only keep the channel we're interested in
-            ch_data = np.array(eeg_data)[:, INDEX_CHANNEL]
+                # Only keep the channel we're interested in
+                ch_data = np.array(eeg_data)[:, INDEX_CHANNEL]
+            except:
+                eeg_data, timestamp = inlet.pull_chunk(
+                    timeout=1, max_samples=int(SHIFT_LENGTH * fs))
+
+                # Only keep the channel we're interested in
+                ch_data = np.array(eeg_data)[:, INDEX_CHANNEL]
 
             # Update EEG buffer with the new data
             eeg_buffer, filter_state = utils.update_buffer(
@@ -193,7 +200,14 @@ if __name__ == "__main__":
             alpha_percentage = ((smooth_band_powers[Band.Alpha] + 2)*25) #alpha represent SMR wave
             beta_percentage = ((smooth_band_powers[Band.Beta] + 2)*25)  #beta represent high beta
 
-            
+            if(sec_cal == 0):
+                option = input("Do you want to calibrate?(y o n) : ")
+                if( option == "y"):
+                    cal = False
+                elif(option == "n"):
+                    cal = True
+                    sec_cal = -1
+
             if(cal == False):
                 if(seconds(sec_cal) < calibration_time):
                     theta_cal = np.append(theta_cal, theta_percentage)
@@ -202,43 +216,74 @@ if __name__ == "__main__":
                     sec_cal += 1
                 else:
                     cal = True
-                    theta_average = theta_cal.mean() - error_percentage
+                    theta_average = theta_cal.mean() + error_percentage
                     alpha_average = alpha_cal.mean() - error_percentage
-                    beta_average = beta_cal.mean() - error_percentage
-                    sec_cal = 0
+                    beta_average = beta_cal.mean() + error_percentage
+                    sec_cal = -1
 
-            else:
-            
-                if( alpha_percentage > alpha_average and theta_percentage < theta_average and beta_percentage < beta_average):
-                    put_100()
+                    option = input("Use " + str(alpha_average)[0:5] + " instead of " + str(alpha_threshold) +"? (y o n) higher better : " )
+                    if(option == "y"):
+                        alpha_threshold = alpha_average
+
+                    option = input("Use " + str(theta_average)[0:5] + " instead of " + str(theta_threshold) +"? (y o n) lower better : " )
+                    if(option == "y"):
+                        theta_threshold = theta_average
+
+                    option = input("Use " + str(beta_average)[0:5] + " instead of " + str(beta_threshold) +"? (y o n) lower better : " )
+                    if(option == "y"):
+                        beta_threshold = beta_average
+
+                    #clean the arrays
+                    theta_cal = np.array([])
+                    alpha_cal= np.array([]) 
+                    beta_cal = np.array([])
+
+            elif(cal == True):
+                sec_op += 1
+                if(sec_op % 6 == 0):
+                    print(" ")
+                    theta_avg = theta_cal.mean()
+                    alpha_avg = alpha_cal.mean()
+                    beta_avg = beta_cal.mean()
+
+                    if( alpha_avg > alpha_threshold and theta_avg < theta_threshold and beta_avg < beta_threshold):
+                        put_100()
+                            
+                    elif( alpha_avg > alpha_threshold and theta_avg < theta_threshold ):
+                        put_50()
                         
-                elif( alpha_percentage > alpha_average and theta_percentage < theta_average ):
-                    put_50()
+                    else:
+                        put_10()
+
+
+                    if(theta_avg < theta_threshold):
+                        print( bcolors.OKGREEN +"theta: " + str(theta_threshold) + bcolors.OKGREEN, end=' ')
+                    else:
+                        print( bcolors.FAIL +"theta: " + str(theta_threshold) + bcolors.FAIL, end=' ')
+
+                    if(alpha_avg > alpha_threshold):
+                        print(bcolors.OKGREEN + "SMR" + str(alpha_threshold) + bcolors.OKGREEN, end=' ')
+                    else:
+                        print(bcolors.FAIL + "SMR" + str(alpha_threshold) + bcolors.FAIL, end=' ')
+
+                    if(beta_avg < beta_threshold):
+                        print(bcolors.OKGREEN + "beta" + str(beta_threshold) + bcolors.OKGREEN, end='\n')
+                    else:
+                        print(bcolors.FAIL + "beta" + str(beta_threshold) + bcolors.FAIL, end='\n')
+
+                    #Clean the arrays
+                    theta_cal = np.array([])
+                    alpha_cal= np.array([]) 
+                    beta_cal = np.array([])
+                    sec_op = 0
+                else:
+                    theta_cal = np.append(theta_cal, theta_percentage)
+                    alpha_cal = np.append(alpha_cal, alpha_percentage)
+                    beta_cal = np.append(beta_cal, beta_percentage)
+
                     
-                else:
-                    put_10()
-
-                
-                if(theta_percentage < theta_average):
-                    print( bcolors.OKGREEN +"theta: " + str(theta_average) + bcolors.OKGREEN, end=' ')
-                else:
-                    print( bcolors.FAIL +"theta: " + str(theta_average) + bcolors.FAIL, end=' ')
-
-                if(alpha_percentage > alpha_average):
-                    print(bcolors.OKGREEN + "SMR" + str(alpha_average) + bcolors.OKGREEN, end=' ')
-                else:
-                    print(bcolors.FAIL + "SMR" + str(alpha_average) + bcolors.FAIL, end=' ')
-
-                if(beta_percentage < beta_average):
-                    print(bcolors.OKGREEN + "beta" + str(beta_average) + bcolors.OKGREEN, end=' ')
-                else:
-                    print(bcolors.FAIL + "beta" + str(beta_average) + bcolors.FAIL, end=' ')
-
-                print(bcolors.OKCYAN + "sec_high: " + str(seconds(sec_high)) + "sec_med: " + str(seconds(sec_med)) +  "sec_low: " + str(seconds(sec_low)) + bcolors.OKCYAN)
-                
-
     except KeyboardInterrupt:
         print('Closing!')
         f = open('param.csv','w')
-        f.write(str(theta_threshold) + "," + str(alpha_threshold) + "," + str(beta_threshold))
+        f.write(str(theta_threshold)[0:4] + "," + str(alpha_threshold)[0:4] + "," + str(beta_threshold)[0:4] )
         f.close()

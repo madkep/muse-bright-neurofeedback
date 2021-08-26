@@ -1,2 +1,20 @@
 
 __pycache__/
+
+dist/muselsl-2.1.0-py3.9.egg
+
+muselsl.egg-info/dependency_links.txt
+
+muselsl.egg-info/entry_points.txt
+
+muselsl.egg-info/not-zip-safe
+
+muselsl.egg-info/PKG-INFO
+
+muselsl.egg-info/SOURCES.txt
+
+muselsl.egg-info/requires.txt
+
+muselsl.egg-info/top_level.txt
+
+muselsl/docs/README.md

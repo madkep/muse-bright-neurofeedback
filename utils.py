@@ -19,8 +19,8 @@ from sklearn import svm
 from scipy.signal import butter, lfilter, lfilter_zi
 
 
-NOTCH_B, NOTCH_A = butter(4, np.array([55, 65]) / (256 / 2), btype='bandstop')
-
+NOTCH_B, NOTCH_A = butter(4, np.array([45, 55]) / (256 / 2), btype='bandstop')
+#45 to 55 is the hz in chile
 
 def epoch(data, samples_epoch, samples_overlap=0):
     """Extract epochs from a time series.
