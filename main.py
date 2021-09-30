@@ -22,9 +22,18 @@ from os import system
 
 # Handy little enum to make code more readable
 
+from pynput import keyboard
+from pynput.keyboard import Key, Controller
+
+keyboard = Controller()
+
+
 
 count = 0
 count_sec = 0
+count_record_aux = 0
+count_record = 0
+bright = 1
 error_percentage = 2 # The calibration error
 
 f = open('param.csv','r')
@@ -63,17 +72,12 @@ theta_cal = np.array([]) #Arrays for calibration and use
 alpha_cal= np.array([]) 
 beta_cal = np.array([])
 
-def put_10():
-    system("brightness 0.01")
-
-def put_50():
-    system("brightness 0.35")
-
-def put_100():
-    system("brightness 0.85")
+def put_b(bright):
+    system(f"brightness {bright}")
 
 
-""" EXPERIMENTAL PARAMETERS """
+
+""" EXPERIMENTAL PARAMEßERS """
 # Modify these to change aspects of the signal processing
 
 # Length of the EEG data buffer (in seconds)
@@ -100,7 +104,7 @@ feature_names = ['delta-AF7', 'delta-AF8', 'theta-AF7', 'theta-AF8', 'alpha-AF7'
 if __name__ == "__main__":
 
     """ 1. CONNECT TO EEG STREAM """
-    put_100()
+    put_b(100)
     # Search for active LSL streams
     print('Looking for an EEG stream...')
     streams = resolve_byprop('type', 'EEG', timeout=2)
@@ -183,7 +187,7 @@ if __name__ == "__main__":
             alpha_percentage = (((smooth_band_powers[Band.Alpha_AF7] + 2)*25) + ((smooth_band_powers[Band.Alpha_AF8] + 2)*25) )/2 #alpha represent SMR wave
             beta_percentage = (((smooth_band_powers[Band.Beta_AF7] + 2)*25)  +  ((smooth_band_powers[Band.Beta_AF8] + 2)*25) )/2#beta represent high beta
 
-            if(count % 6 == 0 and count_sec > 21):
+            if(count % 6 == 0 and count_sec > 30):
                 theta_avg = np.mean(theta_cal)
                 alpha_avg = np.mean(alpha_cal)
                 beta_avg = np.mean(beta_cal)
@@ -194,18 +198,36 @@ if __name__ == "__main__":
                 count = 0
 
                 if( alpha_avg > alpha_threshold and theta_avg < theta_threshold and beta_avg < beta_threshold):
-                    put_100()
-                        
-                elif( alpha_avg > alpha_threshold and theta_avg < theta_threshold ):
-                    put_50()
-                    
-                else:
-                    put_10()
+                    put_b(0.9)
+                    count_record_aux += 1
+                    if(count_record_aux > count_record):
+                        count_record = count_record_aux
 
-                print("    " + str(theta_avg)[0:5] + "    " + str(alpha_avg)[0:5]  + "    " + str(beta_avg)[0:5]  )
+                elif( alpha_avg > (alpha_threshold - 2) and theta_avg < (theta_threshold + 2) and beta_avg < (beta_threshold + 2) ):
+                    put_b(0.80)
+                    count_record_aux = 0
+
+                elif( alpha_avg > (alpha_threshold - 4) and theta_avg < (theta_threshold + 4) and beta_avg < (beta_threshold + 4) ):
+                    put_b(0.70)
+                    count_record_aux = 0
+
+                elif( alpha_avg > (alpha_threshold - 6) and theta_avg < (theta_threshold + 6) and beta_avg < (beta_threshold + 6) ):
+                    put_b(0.60)
+                    count_record_aux = 0
+
+                elif( alpha_avg > (alpha_threshold - 8) and theta_avg < (theta_threshold + 8) and beta_avg < (beta_threshold + 8) ):
+                    put_b(0.50)
+                    count_record_aux = 0
+                
+
+                else:
+                    put_b(0.1)
+                    count_record_aux = 0
+
+                print(bcolors.OKCYAN + "    " + str(theta_avg)[0:5] + "    " + str(alpha_avg)[0:5]  + "    " + str(beta_avg)[0:5]  + " rc:" + str(count_record) + bcolors.OKCYAN)
 
                 if(theta_avg < theta_threshold):
-                    print( bcolors.OKGREEN +"theta: " + str(theta_threshold) + bcolors.OKGREEN, end=' ')
+                    print( bcolors.OKGREEN +"theta: " + str(theta_threshold) + bcolors.OKGREEN , end=' ')
                 else:
                     print( bcolors.FAIL +"theta: " + str(theta_threshold) + bcolors.FAIL, end=' ')
 
@@ -221,7 +243,7 @@ if __name__ == "__main__":
 
 
 
-            elif(count_sec > 21):
+            elif(count_sec > 30):
                 theta_cal = np.append(theta_cal, theta_percentage)
                 alpha_cal = np.append(alpha_cal, alpha_percentage)
                 beta_cal = np.append(beta_cal, beta_percentage)

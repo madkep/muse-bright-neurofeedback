@@ -18,18 +18,32 @@ import matplotlib.pyplot as plt
 from numpy.random.mtrand import beta  # Module used for plotting
 from pylsl import StreamInlet, resolve_byprop  # Module to receive EEG data
 import utils  # Our own utility functions
-from sys import exit
+from os import system
 
 # Handy little enum to make code more readable
+
+from pynput import keyboard
+from pynput.keyboard import Key, Controller
+
+keyboard = Controller()
+
+
+
+count = 0
+count_sec = 0
+count_record_aux = 0
+count_record = 0
+play = False
+bright = 1
+error_percentage = 3 # The calibration error
 
 f = open('param.csv','r')
 message = f.read()
 
-theta_threshold = (float(message[0:4]))
-alpha_threshold = (float(message[5:9])) #SMR 
-beta_threshold = (float(message[10:14]))
+theta_threshold = (float(message[0:4])) + error_percentage
+alpha_threshold = (float(message[5:9])) - error_percentage#SMR 
+beta_threshold = (float(message[10:14])) + error_percentage
 f.close()
-
 
 class Band:
     Delta_AF7 = 0
@@ -52,21 +66,19 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-cal = False
-count = 0
-count_sec = 0
-calibration_time = 64.2 #4.2 seconds more for delay at start
+
 
 
 theta_cal = np.array([]) #Arrays for calibration and use
 alpha_cal= np.array([]) 
 beta_cal = np.array([])
 
+def put_b(bright):
+    system(f"brightness {bright}")
 
-def seconds(sec):
-    return (sec*0.2)
 
-""" EXPERIMENTAL PARAMETERS """
+
+""" EXPERIMENTAL PARAMEßERS """
 # Modify these to change aspects of the signal processing
 
 # Length of the EEG data buffer (in seconds)
@@ -93,7 +105,7 @@ feature_names = ['delta-AF7', 'delta-AF8', 'theta-AF7', 'theta-AF8', 'alpha-AF7'
 if __name__ == "__main__":
 
     """ 1. CONNECT TO EEG STREAM """
-
+    put_b(100)
     # Search for active LSL streams
     print('Looking for an EEG stream...')
     streams = resolve_byprop('type', 'EEG', timeout=2)
@@ -138,6 +150,7 @@ if __name__ == "__main__":
     try:
         # The following loop acquires data, computes band powers, and calculates neurofeedback metrics based on those band powers
         while True:
+            count += 1
             count_sec += 1
             """ 3.1 ACQUIRE DATA """
             # Obtain EEG data from the LSL stream
@@ -175,37 +188,67 @@ if __name__ == "__main__":
             alpha_percentage = (((smooth_band_powers[Band.Alpha_AF7] + 2)*25) + ((smooth_band_powers[Band.Alpha_AF8] + 2)*25) )/2 #alpha represent SMR wave
             beta_percentage = (((smooth_band_powers[Band.Beta_AF7] + 2)*25)  +  ((smooth_band_powers[Band.Beta_AF8] + 2)*25) )/2#beta represent high beta
 
-            if(cal == False and count_sec  > 30):
-                if(seconds(count_sec) < calibration_time):
-                    theta_cal = np.append(theta_cal, theta_percentage)
-                    alpha_cal = np.append(alpha_cal, alpha_percentage)
-                    beta_cal = np.append(beta_cal, beta_percentage)
-                    
-                else:
-                    cal = True
-                    theta_average = np.mean(theta_cal)
-                    alpha_average = np.mean(alpha_cal)
-                    beta_average = np.mean(beta_cal)
-                    count_sec = 1
-
-                    option = input("Use " + str(alpha_average)[0:5] + " instead of " + str(alpha_threshold) +"? (y o n) higher better : " )
-                    if(option == "y"):
-                        alpha_threshold = alpha_average
-
-                    option = input("Use " + str(theta_average)[0:5] + " instead of " + str(theta_threshold) +"? (y o n) lower better : " )
-                    if(option == "y"):
-                        theta_threshold = theta_average
-
-                    option = input("Use " + str(beta_average)[0:5] + " instead of " + str(beta_threshold) +"? (y o n) lower better : " )
-                    if(option == "y"):
-                        beta_threshold = beta_average
-
-                    f = open('param.csv','w')
-                    f.write(str(theta_threshold)[0:4] + "," + str(alpha_threshold)[0:4] + "," + str(beta_threshold)[0:4] )
-                    f.close()
-
-                    exit("Calibration successfully")
+            if(count % 6 == 0 and count_sec > 30):
+                theta_avg = np.mean(theta_cal)
+                alpha_avg = np.mean(alpha_cal)
+                beta_avg = np.mean(beta_cal)
                 
+                theta_cal = np.array([])
+                alpha_cal= np.array([]) 
+                beta_cal = np.array([])
+                count = 0
+
+                if( alpha_avg > alpha_threshold and theta_avg < theta_threshold and beta_avg < beta_threshold):
+                    put_b(0.85)
+                    if(play == False):
+                        keyboard.press(" ")
+                        keyboard.release(" ")
+                        play = True
+                    count_record_aux += 1
+                    if(count_record_aux > count_record):
+                        count_record = count_record_aux
+
+                elif( alpha_avg > (alpha_threshold - 1) and theta_avg < (theta_threshold + 1) and beta_avg < (beta_threshold + 1) ):
+                    put_b(0.75)
+                    count_record_aux = 0
+
+                elif( alpha_avg > (alpha_threshold - 2) and theta_avg < (theta_threshold + 2) and beta_avg < (beta_threshold + 2) ):
+                    put_b(0.60)
+                    count_record_aux = 0
+
+                
+
+                else:
+                    put_b(0.2)
+                    if(play == True):
+                        keyboard.press(" ")
+                        keyboard.release(" ")
+                        play = False
+                    count_record_aux = 0
+
+                print(bcolors.OKCYAN + "    " + str(theta_avg)[0:5] + "    " + str(alpha_avg)[0:5]  + "    " + str(beta_avg)[0:5]  + " rc:" + str(count_record) + bcolors.OKCYAN)
+
+                if(theta_avg < theta_threshold):
+                    print( bcolors.OKGREEN +"theta: " + str(theta_threshold) + bcolors.OKGREEN , end=' ')
+                else:
+                    print( bcolors.FAIL +"theta: " + str(theta_threshold) + bcolors.FAIL, end=' ')
+
+                if(alpha_avg > alpha_threshold):
+                    print(bcolors.OKGREEN + "SMR" + str(alpha_threshold) + bcolors.OKGREEN, end=' ')
+                else:
+                    print(bcolors.FAIL + "SMR" + str(alpha_threshold) + bcolors.FAIL, end=' ')
+
+                if(beta_avg < beta_threshold):
+                    print(bcolors.OKGREEN + "beta" + str(beta_threshold) + bcolors.OKGREEN, end='\n')
+                else:
+                    print(bcolors.FAIL + "beta" + str(beta_threshold) + bcolors.FAIL, end='\n')
+
+
+
+            elif(count_sec > 30):
+                theta_cal = np.append(theta_cal, theta_percentage)
+                alpha_cal = np.append(alpha_cal, alpha_percentage)
+                beta_cal = np.append(beta_cal, beta_percentage)
 
 
 
