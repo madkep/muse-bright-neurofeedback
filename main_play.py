@@ -35,7 +35,7 @@ count_record_aux = 0
 count_record = 0
 play = False
 bright = 1
-error_percentage = 3 # The calibration error
+error_percentage = 2 # The calibration error
 
 f = open('param.csv','r')
 message = f.read()
