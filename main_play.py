@@ -19,6 +19,7 @@ from numpy.random.mtrand import beta  # Module used for plotting
 from pylsl import StreamInlet, resolve_byprop  # Module to receive EEG data
 import utils  # Our own utility functions
 from os import system
+from datetime import date
 
 # Handy little enum to make code more readable
 
@@ -28,7 +29,7 @@ from pynput.keyboard import Key, Controller
 keyboard = Controller()
 
 
-
+today = str(date.today())
 count = 0
 count_sec = 0
 count_record_aux = 0
@@ -253,4 +254,22 @@ if __name__ == "__main__":
 
 
     except KeyboardInterrupt:
-        print('Closing!')
+        with open('record.csv','r') as f:
+            for line in f:
+                pass
+            last_line = line
+        x = last_line.split(",")
+        if(x[1] == today+"\n"):
+            print("Mejoraste la puntuación diaria")
+            if(count_record > int(x[0])):
+                readFile = open('record.csv')
+                lines = readFile.readlines()
+                readFile.close()
+                w = open('record.csv','w')
+                w.writelines([item for item in lines[:-1]])
+                w.close()
+                with open('record.csv','a+') as f:
+                    f.write(str(count_record)+","+today+"\n")
+        else:
+            with open('record.csv','a+') as f:
+                    f.write(str(count_record)+","+today+"\n")
