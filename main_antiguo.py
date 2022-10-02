@@ -41,7 +41,8 @@ f = open('param.csv','r')
 message = f.read()
 
 theta_threshold = (float(message[0:4])) + error_percentage
-alpha_threshold = (float(message[6:10])) - error_percentage
+alpha_threshold = (float(message[5:9])) - error_percentage#SMR 
+beta_threshold = (float(message[10:14])) + error_percentage
 f.close()
 
 class Band:
@@ -70,6 +71,7 @@ class bcolors:
 
 theta_cal = np.array([]) #Arrays for calibration and use
 alpha_cal= np.array([]) 
+beta_cal = np.array([])
 
 def put_b(bright):
     cmd = f"(Get-WmiObject -Namespace root/WMI -Class WmiMonitorBrightnessMethods).WmiSetBrightness(1,{bright})"
@@ -186,29 +188,32 @@ if __name__ == "__main__":
             theta_percentage = (((smooth_band_powers[Band.Delta_AF7] + 2)*25) +  ((smooth_band_powers[Band.Delta_AF8] + 2)*25) )/2#theta represent theta
             #theta_percentage = (((smooth_band_powers[Band.Theta_AF7] + 2)*25) +  ((smooth_band_powers[Band.Theta_AF8] + 2)*25) )/2#theta represent theta
             alpha_percentage = (((smooth_band_powers[Band.Alpha_AF7] + 2)*25) + ((smooth_band_powers[Band.Alpha_AF8] + 2)*25) )/2 #alpha represent SMR wave
+            beta_percentage = (((smooth_band_powers[Band.Beta_AF7] + 2)*25)  +  ((smooth_band_powers[Band.Beta_AF8] + 2)*25) )/2#beta represent high beta
 
             if(count % 6 == 0 and count_sec > 30):
                 theta_avg = np.mean(theta_cal)
                 alpha_avg = np.mean(alpha_cal)
+                beta_avg = np.mean(beta_cal)
                 
                 theta_cal = np.array([])
                 alpha_cal= np.array([]) 
+                beta_cal = np.array([])
                 count = 0
 
-                if( alpha_avg > alpha_threshold and theta_avg < theta_threshold ):
+                if( alpha_avg > alpha_threshold and theta_avg < theta_threshold and beta_avg < beta_threshold):
                     put_b(85)
                     if(play == False):
-                        pyautogui.press(" ")
+                        pyautogui.press("playpause")
                         play = True
                     count_record_aux += 1
                     if(count_record_aux > count_record):
                         count_record = count_record_aux
 
-                elif( alpha_avg > (alpha_threshold - 1) and theta_avg < (theta_threshold + 1) ):
+                elif( alpha_avg > (alpha_threshold - 1) and theta_avg < (theta_threshold + 1) and beta_avg < (beta_threshold + 1) ):
                     put_b(75)
                     count_record_aux = 0
 
-                elif( alpha_avg > (alpha_threshold - 2) and theta_avg < (theta_threshold + 2) ):
+                elif( alpha_avg > (alpha_threshold - 2) and theta_avg < (theta_threshold + 2) and beta_avg < (beta_threshold + 2) ):
                     put_b(60)
                     count_record_aux = 0
 
@@ -217,11 +222,11 @@ if __name__ == "__main__":
                 else:
                     put_b(20)
                     if(play == True):
-                        pyautogui.press(" ")
+                        pyautogui.press("playpause")
                         play = False
                     count_record_aux = 0
 
-                print(bcolors.OKCYAN + "    " + str(theta_avg)[0:5] + "    " + str(alpha_avg)[0:5]  + "    " + " rc:" + str(count_record) + bcolors.OKCYAN)
+                print(bcolors.OKCYAN + "    " + str(theta_avg)[0:5] + "    " + str(alpha_avg)[0:5]  + "    " + str(beta_avg)[0:5]  + " rc:" + str(count_record) + bcolors.OKCYAN)
 
                 if(theta_avg < theta_threshold):
                     print( bcolors.OKGREEN +"Delta: " + str(theta_threshold) + bcolors.OKGREEN , end=' ')
@@ -229,16 +234,22 @@ if __name__ == "__main__":
                     print( bcolors.FAIL +"Delta: " + str(theta_threshold) + bcolors.FAIL, end=' ')
 
                 if(alpha_avg > alpha_threshold):
-                    print(bcolors.OKGREEN + "Alpha" + str(alpha_threshold) + bcolors.OKGREEN, end=' ')
+                    print(bcolors.OKGREEN + "SMR" + str(alpha_threshold) + bcolors.OKGREEN, end=' ')
                 else:
-                    print(bcolors.FAIL + "Alpha" + str(alpha_threshold) + bcolors.FAIL, end=' ')
+                    print(bcolors.FAIL + "SMR" + str(alpha_threshold) + bcolors.FAIL, end=' ')
 
+                if(beta_avg < beta_threshold):
+                    print(bcolors.OKGREEN + "beta" + str(beta_threshold) + bcolors.OKGREEN, end='\n')
+                else:
+                    print(bcolors.FAIL + "beta" + str(beta_threshold) + bcolors.FAIL, end='\n')
 
 
 
             elif(count_sec > 30):
                 theta_cal = np.append(theta_cal, theta_percentage)
                 alpha_cal = np.append(alpha_cal, alpha_percentage)
+                beta_cal = np.append(beta_cal, beta_percentage)
+
 
 
     except KeyboardInterrupt:

@@ -1,0 +1,64 @@
+stages:
+  - build-qa
+  - build-prod
+
+docker-build-qa:
+  stage: build-qa
+  services:
+    - docker:18.09.7-dind
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: "overlay2"
+  cache:
+    key: "$CI_COMMIT_SHA"
+  image: rodmaureirac/docker-fid-gitlab-ci-cd
+  before_script:
+    - cd cotizador-docker
+    - echo "$DOCKERFILE_QA" > DockerfileQA
+    - echo "$SERVICE_ACCOUNT_QA" > key.json
+    - echo "$VDGINCENDIO_QA" > credentials-qa.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud config set project vascodagama-qa
+    - gcloud auth configure-docker
+    - gcloud container clusters get-credentials vascodagama-qa-cluster --zone us-east4-c
+    - printf -v TAG "%(%Y%m%d_%H%M)T\n" -1
+    - IMAGE_URI="gcr.io/vascodagama-qa/vdg-incendio-qa-container:${TAG}"
+  script:
+    - docker build -f DockerfileQA -t ${IMAGE_URI} ./
+    - docker push ${IMAGE_URI}
+    - kubectl get namespaces
+    - kubectl get pods
+    - kubectl -n gitlab-managed-apps set image deployment/vdg-incendio-qa-pod vdg-incendio-qa-container=${IMAGE_URI}
+  only:
+    - qa
+
+docker-build-prod:
+  stage: build-prod
+  services:
+    - docker:18.09.7-dind
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: "overlay2"
+  cache:
+    key: "$CI_COMMIT_SHA"
+  image: fidseguros/docker-fid-gitlab-ci-cd
+  before_script:
+    - cd cotizador-docker
+    - echo "$DOCKERFILE_PROD" > DockerfilePROD
+    - echo "$RUNNER_PROD_CREDENTIALS" > key.json
+    - echo "$VDGINCENDIO_PROD" > credentials-prod.json
+    - echo "$MLCONFIG_PROD" > mlconfig-prod.json
+    - gcloud auth activate-service-account --key-file=key.json
+    - gcloud config set project vascodagama-prod
+    - gcloud auth configure-docker
+    - gcloud container clusters get-credentials vascodagama-prod-cluster --zone us-east4-c
+    - printf -v TAG "%(%Y%m%d_%H%M)T\n" -1
+    - IMAGE_URI="gcr.io/vascodagama-prod/vdgincendio-prod-container:${TAG}"
+  script:
+    - docker build -f DockerfilePROD -t ${IMAGE_URI} ./
+    - docker push ${IMAGE_URI}
+    - kubectl -n gitlab-managed-apps set image deployment/vdgincendio-prod-pod vdgincendio-prod-container=${IMAGE_URI}
+  only:
+    - produccion

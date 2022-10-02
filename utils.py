@@ -16,7 +16,8 @@ from subprocess import call
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import svm
-from scipy.signal import butter, lfilter, lfilter_zi
+from scipy.signal import butter, lfilter, lfilter_zi, welch
+
 
 
 NOTCH_B, NOTCH_A = butter(4, np.array([45, 55]) / (256 / 2), btype='bandstop')
@@ -82,8 +83,10 @@ def compute_band_powers(eegdata, fs):
 
     NFFT = nextpow2(winSampleLength)
     Y = np.fft.fft(dataWinCenteredHam, n=NFFT, axis=0) / winSampleLength
-    PSD = 2 * np.abs(Y[0:int(NFFT / 2), :])
+    PSD = 2 * np.abs(Y[0:int((NFFT**2) / 2), :])
     f = fs / 2 * np.linspace(0, 1, int(NFFT / 2))
+
+    
 
     # SPECTRAL FEATURES
     # Average of band powers
@@ -94,7 +97,7 @@ def compute_band_powers(eegdata, fs):
     ind_theta, = np.where((f >= 4) & (f <= 8))
     meanTheta = np.mean(PSD[ind_theta, :], axis=0)
     # Alpha 8-12
-    ind_alpha, = np.where((f >= 12.5) & (f <= 15.5))
+    ind_alpha, = np.where((f >= 8) & (f <= 13))
     meanAlpha = np.mean(PSD[ind_alpha, :], axis=0)
     # Beta 12-30
     ind_beta, = np.where((f >= 20) & (f < 30))
